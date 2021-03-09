@@ -4,16 +4,36 @@ Class {
 	#instVars : [
 		'links'
 	],
+	#classVars : [
+		'CurrentLinks'
+	],
 	#category : #Signalman
 }
 
 { #category : #'as yet unclassified' }
-SMLinks >> add: anReceiver at: anSymbol [
-	| coll |
-	coll := self links at: anSymbol ifAbsent: [ nil ].
-	coll ifNil: [ coll := WeakIdentitySet new.
-		links at: anSymbol put: coll ].
-	(coll like: anReceiver) ifFalse: [ coll add: anReceiver ].
+SMLinks class >> currentLinks [
+	^ CurrentLinks ifNil: [ CurrentLinks := self new ].
+]
+
+{ #category : #'as yet unclassified' }
+SMLinks class >> currentLinks: aNewLinks [
+	CurrentLinks := aNewLinks
+]
+
+{ #category : #'as yet unclassified' }
+SMLinks class >> resentCurrentLinks [
+	CurrentLinks := nil
+]
+
+{ #category : #'as yet unclassified' }
+SMLinks >> add: anReceiver event: aSymbol source: aSource [
+	| coll symbols |
+	symbols := self links at: aSource ifAbsent: [ nil ].
+	symbols ifNil: [
+		symbols := IdentityDictionary new.
+		links at: aSource put: symbols ].
+	coll := symbols at: aSymbol ifAbsent: [ symbols at: aSymbol put: WeakIdentitySet new ].
+	coll like: anReceiver ifAbsent: [ coll add: anReceiver ]
 	
 ]
 
@@ -28,33 +48,41 @@ SMLinks >> links: anObject [
 ]
 
 { #category : #'as yet unclassified' }
-SMLinks >> remove: anReceiver at: anSymbol [
-	| coll |
-	coll := self links at: anSymbol ifAbsent: [ nil ].
+SMLinks >> remove: anReceiver event: anSymbol source: aSource [
+	| coll symbols |
+	symbols := self links at: aSource ifAbsent: [ nil ].
+	symbols ifNil: [ ^ self ].
+	coll := symbols at: anSymbol ifAbsent: [ nil ].
 	coll ifNil: [ ^ self ].
-	coll remove: anSymbol ifAbsent: [ nil ].
+	coll remove: anReceiver ifAbsent: [  ].
 ]
 
 { #category : #'as yet unclassified' }
-SMLinks >> signalize: anSymbol [
-	| ref |
-	ref := self links at: anSymbol ifAbsent: [ nil ].
-	ref ifNil: [ ^ self ].
-	^ ref collect: [ :el| [ el perform: anSymbol asSymbol ] fork ].
+SMLinks >> sEvent: anSymbol from: anObject [
+	| receivers symbols |
+	symbols := self links at: anObject ifAbsent: [ nil ].
+	symbols ifNil: [ ^ self ].
+	receivers := symbols at: anSymbol ifAbsent: [ nil ].
+	receivers ifNil: [ ^ self ].
+	^ receivers collect: [ :el| [ el perform: anSymbol asSymbol ] fork ].
 ]
 
 { #category : #'as yet unclassified' }
-SMLinks >> signalize: anSymbol from: anObject [
-	| ref |
-	ref := self links at: anObject ifAbsent: [ nil ].
-	ref ifNil: [ ^ self ].
-	^ ref collect: [ :el| [ el perform: anSymbol asSymbol ] fork ].
+SMLinks >> sEvent: anSymbol source: anObject [
+	| receivers symbols |
+	symbols := self links at: anObject ifAbsent: [ nil ].
+	symbols ifNil: [ ^ self ].
+	receivers := symbols at: anSymbol ifAbsent: [ nil ].
+	receivers ifNil: [ ^ self ].
+	^ receivers collect: [ :el| [ el perform: anSymbol asSymbol ] fork ].
 ]
 
 { #category : #'as yet unclassified' }
-SMLinks >> signalize: anSymbol width: anObject [
-	| ref |
-	ref := self links at: anSymbol ifAbsent: [ nil ].
-	ref ifNil: [ ^ self ].
-	^ ref collect: [ :el| [ el perform: anSymbol asSymbol with: anObject ] fork ].
+SMLinks >> sEvent: anSymbol source: anObject arg: anArg [
+	| receivers symbols |
+	symbols := self links at: anObject ifAbsent: [ nil ].
+	symbols ifNil: [ ^ self ].
+	receivers := symbols at: anSymbol ifAbsent: [ nil ].
+	receivers ifNil: [ ^ self ].
+	^ receivers collect: [ :el| [ el perform: anSymbol asSymbol with: anArg ] fork ].
 ]

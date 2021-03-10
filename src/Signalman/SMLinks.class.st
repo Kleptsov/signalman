@@ -1,3 +1,32 @@
+"
+Event management. You can add (remove) event handler and create events.
+Each event handler runs on separate thread.
+
+Public API and Key Messages
+
+- add: aReceiver event: anEvent source: aSource  
+- remove: aReceiver event: anEvent source: aSource
+- sEvent: aSelector source: aSource
+- sEvent: aSelector source: aSource
+
+- SMLinks new - creating a new event manager.
+
+|handler handler2 source|
+handler := [ self inform: 'this is first handler' ].
+source := Object new.
+handler2 := [ self inform: 'this is second handler' ].
+source addEvent: #value receiver: handler.
+source addEvent: #value receiver: handler2.
+source sEvent: #value.
+ 
+Internal Representation and Key Implementation Points.
+
+    Instance Variables
+	links:		<Object>
+
+
+    Implementation Points
+"
 Class {
 	#name : #SMLinks,
 	#superclass : #Object,
@@ -27,18 +56,14 @@ SMLinks class >> resentCurrentLinks [
 
 { #category : #'as yet unclassified' }
 SMLinks >> add: anReceiver event: aSymbol source: aSource [
-	| coll symbols |
-	symbols := self links at: aSource ifAbsent: [ nil ].
-	symbols ifNil: [
-		symbols := IdentityDictionary new.
-		links at: aSource put: symbols ].
-	coll := symbols at: aSymbol ifAbsent: [ symbols at: aSymbol put: WeakIdentitySet new ].
-	coll like: anReceiver ifAbsent: [ coll add: anReceiver ]
+	"Adding an event handler"	
+	^ self add: anReceiver sEvent: aSymbol source: aSource
 	
 ]
 
 { #category : #'as yet unclassified' }
 SMLinks >> add: anReceiver sEvent: aSymbol source: aSource [
+	"Adding an event handler"
 	| coll symbols |
 	symbols := self links at: aSource ifAbsent: [ nil ].
 	symbols ifNil: [
@@ -61,16 +86,14 @@ SMLinks >> links: anObject [
 
 { #category : #'as yet unclassified' }
 SMLinks >> remove: anReceiver event: anSymbol source: aSource [
-	| coll symbols |
-	symbols := self links at: aSource ifAbsent: [ nil ].
-	symbols ifNil: [ ^ self ].
-	coll := symbols at: anSymbol ifAbsent: [ nil ].
-	coll ifNil: [ ^ self ].
-	coll remove: anReceiver ifAbsent: [  ].
+	"Removing an event handler"
+	
+	^ self remove: anReceiver sEvent: anSymbol source: aSource
 ]
 
 { #category : #'as yet unclassified' }
 SMLinks >> remove: anReceiver sEvent: anSymbol source: aSource [
+	"Removing an event handler"
 	| coll symbols |
 	symbols := self links at: aSource ifAbsent: [ nil ].
 	symbols ifNil: [ ^ self ].
@@ -80,31 +103,23 @@ SMLinks >> remove: anReceiver sEvent: anSymbol source: aSource [
 ]
 
 { #category : #'as yet unclassified' }
-SMLinks >> sEvent: anSymbol from: anObject [
+SMLinks >> sEvent: aSelector source: aSource [
+	"Creating an Event"
 	| receivers symbols |
-	symbols := self links at: anObject ifAbsent: [ nil ].
+	symbols := self links at: aSource ifAbsent: [ nil ].
 	symbols ifNil: [ ^ self ].
-	receivers := symbols at: anSymbol ifAbsent: [ nil ].
+	receivers := symbols at: aSelector ifAbsent: [ nil ].
 	receivers ifNil: [ ^ self ].
-	^ receivers collect: [ :el| [ el perform: anSymbol asSymbol ] fork ].
+	^ receivers collect: [ :el| [ el perform: aSelector asSymbol ] fork ].
 ]
 
 { #category : #'as yet unclassified' }
-SMLinks >> sEvent: anSymbol source: anObject [
+SMLinks >> sEvent: aSelector source: aSource arg: anArg [
+	"Creating an Event with an argument"
 	| receivers symbols |
-	symbols := self links at: anObject ifAbsent: [ nil ].
+	symbols := self links at: aSource ifAbsent: [ nil ].
 	symbols ifNil: [ ^ self ].
-	receivers := symbols at: anSymbol ifAbsent: [ nil ].
+	receivers := symbols at: aSelector ifAbsent: [ nil ].
 	receivers ifNil: [ ^ self ].
-	^ receivers collect: [ :el| [ el perform: anSymbol asSymbol ] fork ].
-]
-
-{ #category : #'as yet unclassified' }
-SMLinks >> sEvent: anSymbol source: anObject arg: anArg [
-	| receivers symbols |
-	symbols := self links at: anObject ifAbsent: [ nil ].
-	symbols ifNil: [ ^ self ].
-	receivers := symbols at: anSymbol ifAbsent: [ nil ].
-	receivers ifNil: [ ^ self ].
-	^ receivers collect: [ :el| [ el perform: anSymbol asSymbol with: anArg ] fork ].
+	^ receivers collect: [ :el| [ el perform: aSelector asSymbol with: anArg ] fork ].
 ]

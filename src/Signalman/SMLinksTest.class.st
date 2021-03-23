@@ -13,48 +13,48 @@ SMLinksTest >> setUp [
 ]
 
 { #category : #tests }
-SMLinksTest >> testAddEventSource [
+SMLinksTest >> testAddSelectorSourceEvent [
 	| block link res |
 	block := [ self inform: 'OK'. res := true. 'signalman' yourself ].
-	links add: block sEvent: #value source: block.
-	link := links links at: block ifAbsent: [ nil ].
+	links add: block selector: #value source: self event: #signalmanEvent.
+	link := links links at: self ifAbsent: [ nil ].
 	self assert: link notNil.
 	self assert: link size equals: 1.
-	self assert: (link at: #value) notNil.
-	links sEvent: #value source: block.
+	self assert: (link at: #signalmanEvent) notNil.
+	links event: #signalmanEvent source: self.
 	(Delay forMilliseconds: 1000) wait.
 	self assert: res
+]
+
+{ #category : #tests }
+SMLinksTest >> testEventSource [
+	| res block |
+	block := [ res := true ].
+	links add: block selector: #value source: self event: #signalmanEvent.
+	links event: #signalmanEvent source: self.
+	(Delay forMilliseconds: 1000) wait.
+	self assert: res.
+]
+
+{ #category : #tests }
+SMLinksTest >> testEventSourceArg [
+	| res block |
+	block := [:v| res := v ].
+	links add: block selector: #cull: source: self event: #signalmanEvent.
+	links event: #signalmanEvent source: self arg: 1.
+	(Delay forMilliseconds: 1000) wait.
+	self assert: res equals: 1
 ]
 
 { #category : #tests }
 SMLinksTest >> testRemoveEventSource [
 	| block link |
 	block := [  ].
-	links add: block event: #value source: self.
-	link := (links links at: self) at: #value.
+	links add: block selector: #value source: self event: #signalmanEvent.
+	link := (links links at: self) at: #signalmanEvent.
 	self assert: link size equals: 1.
-	links remove: block event: #value source: self.
-	link := (links links at: self) at: #value.
+	links remove: block event: #signalmanEvent source: self.
+	link := (links links at: self) at: #signalmanEvent.
 	self assert: link size equals: 0.
 
-]
-
-{ #category : #tests }
-SMLinksTest >> testSEventSource [
-	| res block |
-	block := [ res := true ].
-	links add: block event: #value source: self.
-	links sEvent: #value source: self.
-	(Delay forMilliseconds: 1000) wait.
-	self assert: res.
-]
-
-{ #category : #tests }
-SMLinksTest >> testSEventSourceArg [
-	| res block |
-	block := [:v| res := v ].
-	links add: block event: #cull: source: self.
-	links sEvent: #cull: source: self arg: 1.
-	(Delay forMilliseconds: 1000) wait.
-	self assert: res equals: 1
 ]

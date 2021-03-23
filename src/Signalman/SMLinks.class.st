@@ -4,20 +4,22 @@ Each event handler runs on separate thread.
 
 Public API and Key Messages
 
-- add: aReceiver event: anEvent source: aSource  
+- add: aReceiver selector: aSelector source: aSource event: anEvent  
 - remove: aReceiver event: anEvent source: aSource
-- sEvent: aSelector source: aSource
-- sEvent: aSelector source: aSource
+- event: aSelector source: aSource
+- event: aSelector source: aSource arg: anArgument
 
 - SMLinks new - creating a new event manager.
 
-|handler handler2 source|
-handler := [ self inform: 'this is first handler' ].
+|eventReceiver eventReceiver2 source|
+eventReceiver := [ self inform: 'this is first event receiver' ].
 source := Object new.
-handler2 := [ self inform: 'this is second handler' ].
-source addEvent: #value receiver: handler.
-source addEvent: #value receiver: handler2.
-source sEvent: #value.
+eventReceiver2 := [ self inform: 'this is second event receiver' ].
+source addEvent: #newEvent receiver: eventReceiver selector: #value.
+source addEvent: #newEvent receiver: eventReceiver2 selector: #value.
+source addEvent: #newEvent2 receiver: eventReceiver selector: #value.
+source sEvent: #newEvent.
+source sEvent: #newEvent2.
  
 Internal Representation and Key Implementation Points.
 
@@ -54,24 +56,42 @@ SMLinks class >> resentCurrentLinks [
 	CurrentLinks := nil
 ]
 
-{ #category : #'as yet unclassified' }
-SMLinks >> add: anReceiver event: aSymbol source: aSource [
-	"Adding an event handler"	
-	^ self add: anReceiver sEvent: aSymbol source: aSource
-	
-]
-
-{ #category : #'as yet unclassified' }
-SMLinks >> add: anReceiver sEvent: aSymbol source: aSource [
+{ #category : #'event handling' }
+SMLinks >> add: aReceiver selector: aSelector source: aSource event: aSymbol [ 
 	"Adding an event handler"
 	| coll symbols |
 	symbols := self links at: aSource ifAbsent: [ nil ].
 	symbols ifNil: [
 		symbols := IdentityDictionary new.
 		links at: aSource put: symbols ].
-	coll := symbols at: aSymbol ifAbsent: [ symbols at: aSymbol put: WeakIdentitySet new ].
-	coll like: anReceiver ifAbsent: [ coll add: anReceiver ]
-	
+	coll := symbols at: aSymbol ifAbsent: [ symbols at: aSymbol put: WeakIdentityKeyDictionary new ].
+	coll at: aReceiver put: aSelector.
+]
+
+{ #category : #'event handling' }
+SMLinks >> event: aSelector source: aSource [
+	"Creating an Event"
+	| receivers symbols res |
+	symbols := self links at: aSource ifAbsent: [ nil ].
+	symbols ifNil: [ ^ self ].
+	receivers := symbols at: aSelector ifAbsent: [ nil ].
+	receivers ifNil: [ ^ self ].
+	res := OrderedCollection new.
+	receivers keysAndValuesDo: [ :k :v| res add: ([k perform: v asSymbol] fork)].
+	^ res
+]
+
+{ #category : #'event handling' }
+SMLinks >> event: aSelector source: aSource arg: anArg [
+	"Creating an Event with an argument"
+	| receivers symbols res |
+	symbols := self links at: aSource ifAbsent: [ nil ].
+	symbols ifNil: [ ^ self ].
+	receivers := symbols at: aSelector ifAbsent: [ nil ].
+	receivers ifNil: [ ^ self ].
+	res := OrderedCollection new.
+	receivers keysAndValuesDo: [ :k :v| res add: ([ k perform: v asSymbol with: anArg ] fork) ].
+	^ res
 ]
 
 { #category : #accessing }
@@ -84,42 +104,13 @@ SMLinks >> links: anObject [
 	links := anObject
 ]
 
-{ #category : #'as yet unclassified' }
+{ #category : #'event handling' }
 SMLinks >> remove: anReceiver event: anSymbol source: aSource [
-	"Removing an event handler"
-	
-	^ self remove: anReceiver sEvent: anSymbol source: aSource
-]
-
-{ #category : #'as yet unclassified' }
-SMLinks >> remove: anReceiver sEvent: anSymbol source: aSource [
 	"Removing an event handler"
 	| coll symbols |
 	symbols := self links at: aSource ifAbsent: [ nil ].
 	symbols ifNil: [ ^ self ].
 	coll := symbols at: anSymbol ifAbsent: [ nil ].
 	coll ifNil: [ ^ self ].
-	coll remove: anReceiver ifAbsent: [  ].
-]
-
-{ #category : #'as yet unclassified' }
-SMLinks >> sEvent: aSelector source: aSource [
-	"Creating an Event"
-	| receivers symbols |
-	symbols := self links at: aSource ifAbsent: [ nil ].
-	symbols ifNil: [ ^ self ].
-	receivers := symbols at: aSelector ifAbsent: [ nil ].
-	receivers ifNil: [ ^ self ].
-	^ receivers collect: [ :el| [ el perform: aSelector asSymbol ] fork ].
-]
-
-{ #category : #'as yet unclassified' }
-SMLinks >> sEvent: aSelector source: aSource arg: anArg [
-	"Creating an Event with an argument"
-	| receivers symbols |
-	symbols := self links at: aSource ifAbsent: [ nil ].
-	symbols ifNil: [ ^ self ].
-	receivers := symbols at: aSelector ifAbsent: [ nil ].
-	receivers ifNil: [ ^ self ].
-	^ receivers collect: [ :el| [ el perform: aSelector asSymbol with: anArg ] fork ].
+	^ coll removeKey: anReceiver ifAbsent: [  ].
 ]

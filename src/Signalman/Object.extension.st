@@ -1,32 +1,33 @@
 Extension { #name : #Object }
 
 { #category : #'*Signalman' }
-Object >> addEvent: aSelector receiver: aReceiver [
+Object >> addEvent: anEvent receiver: aReceiver selector: aSelector [
 	self sEventLinks
 		add: aReceiver
-		event: aSelector
-		source: self.
+		selector: aSelector
+		source: self
+		event: anEvent.
 ]
 
 { #category : #'*Signalman' }
-Object >> removeEvent: aSelector receiver: aReceiver [
+Object >> removeEvent: anEventName receiver: aReceiver [
 	self sEventLinks
 		remove: aReceiver
-		event: aSelector
+		event: anEventName
 		source: self.
 ]
 
 { #category : #'*Signalman' }
-Object >> sEvent: aSelector [
+Object >> sEvent: anEventName [
 	^ self sEventLinks
-			sEvent: aSelector
+			event: anEventName
 			source: self
 ]
 
 { #category : #'*Signalman' }
-Object >> sEvent: aSelector arg: anArg [
+Object >> sEvent: anEventName arg: anArg [
 	^ self sEventLinks
-			sEvent: aSelector
+			sEvent: anEventName
 			source: self
 			arg: anArg
 ]

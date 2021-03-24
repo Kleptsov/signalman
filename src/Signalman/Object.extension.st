@@ -27,7 +27,7 @@ Object >> sEvent: anEventName [
 { #category : #'*Signalman' }
 Object >> sEvent: anEventName arg: anArg [
 	^ self sEventLinks
-			sEvent: anEventName
+			event: anEventName
 			source: self
 			arg: anArg
 ]

@@ -33,7 +33,8 @@ Class {
 	#name : #SMLinks,
 	#superclass : #Object,
 	#instVars : [
-		'links'
+		'links',
+		'level'
 	],
 	#classVars : [
 		'CurrentLinks'
@@ -65,7 +66,9 @@ SMLinks >> add: aReceiver selector: aSelector source: aSource event: aSymbol [
 		symbols := IdentityDictionary new.
 		links at: aSource put: symbols ].
 	coll := symbols at: aSymbol ifAbsent: [ symbols at: aSymbol put: WeakIdentityKeyDictionary new ].
-	coll at: aReceiver put: aSelector.
+	coll
+		at: aReceiver
+		put: ((SMMonitor receiver: aReceiver selector: aSelector) level: self level).
 ]
 
 { #category : #'event handling' }
@@ -77,7 +80,7 @@ SMLinks >> event: aSelector source: aSource [
 	receivers := symbols at: aSelector ifAbsent: [ nil ].
 	receivers ifNil: [ ^ self ].
 	res := OrderedCollection new.
-	receivers keysAndValuesDo: [ :k :v| res add: ([k perform: v asSymbol] fork)].
+	receivers keysAndValuesDo: [ :k :v| res add: ([ v execute ] fork)].
 	^ res
 ]
 
@@ -90,8 +93,18 @@ SMLinks >> event: aSelector source: aSource arg: anArg [
 	receivers := symbols at: aSelector ifAbsent: [ nil ].
 	receivers ifNil: [ ^ self ].
 	res := OrderedCollection new.
-	receivers keysAndValuesDo: [ :k :v| res add: ([ k perform: (v, #':') asSymbol with: anArg ] fork) ].
+	receivers keysAndValuesDo: [ :k :v| res add: ([ v executeWith: anArg ] fork) ].
 	^ res
+]
+
+{ #category : #accessing }
+SMLinks >> level [
+	^ level ifNil: [  level := 1 ]
+]
+
+{ #category : #accessing }
+SMLinks >> level: anObject [
+	level := anObject
 ]
 
 { #category : #accessing }

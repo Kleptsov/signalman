@@ -90,7 +90,7 @@ SMLinks >> event: aSelector source: aSource arg: anArg [
 	receivers := symbols at: aSelector ifAbsent: [ nil ].
 	receivers ifNil: [ ^ self ].
 	res := OrderedCollection new.
-	receivers keysAndValuesDo: [ :k :v| res add: ([ k perform: v asSymbol with: anArg ] fork) ].
+	receivers keysAndValuesDo: [ :k :v| res add: ([ k perform: (v, #':') asSymbol with: anArg ] fork) ].
 	^ res
 ]
 

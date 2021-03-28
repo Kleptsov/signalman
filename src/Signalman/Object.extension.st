@@ -10,6 +10,15 @@ Object >> addEvent: anEvent receiver: aReceiver selector: aSelector [
 ]
 
 { #category : #'*Signalman' }
+Object >> addModel: aModel event: anEvent callbackEvent: aCallbackEvent [
+	| res |
+	res := aModel perform: anEvent asSymbol.
+	self perform: (aCallbackEvent, #':') asSymbol with: res.
+	aModel addEvent: anEvent receiver: self selector: aCallbackEvent.
+	self addEvent: aCallbackEvent receiver: aModel selector: anEvent.
+]
+
+{ #category : #'*Signalman' }
 Object >> removeEvent: anEventName receiver: aReceiver [
 	self sEventLinks
 		remove: aReceiver

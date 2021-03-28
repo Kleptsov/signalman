@@ -40,7 +40,7 @@ SMLinksTest >> testEventSource [
 SMLinksTest >> testEventSourceArg [
 	| res block |
 	block := [:v| res := v ].
-	links add: block selector: #cull: source: self event: #signalmanEvent.
+	links add: block selector: #cull source: self event: #signalmanEvent.
 	links event: #signalmanEvent source: self arg: 1.
 	(Delay forMilliseconds: 1000) wait.
 	self assert: res equals: 1

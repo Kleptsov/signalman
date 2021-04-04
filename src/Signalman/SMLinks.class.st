@@ -34,7 +34,8 @@ Class {
 	#superclass : #Object,
 	#instVars : [
 		'links',
-		'level'
+		'level',
+		'count'
 	],
 	#classVars : [
 		'CurrentLinks'
@@ -53,34 +54,52 @@ SMLinks class >> currentLinks: aNewLinks [
 ]
 
 { #category : #'as yet unclassified' }
-SMLinks class >> resentCurrentLinks [
+SMLinks class >> reset [
+	CurrentLinks := nil
+]
+
+{ #category : #'as yet unclassified' }
+SMLinks class >> resetCurrentLinks [
 	CurrentLinks := nil
 ]
 
 { #category : #'event handling' }
-SMLinks >> add: aReceiver selector: aSelector source: aSource event: aSymbol [ 
+SMLinks >> add: aReceiver selector: aSelector source: aSource event: aSymbol [
 	"Adding an event handler"
+
 	| coll symbols |
+	self tryClean.
 	symbols := self links at: aSource ifAbsent: [ nil ].
-	symbols ifNil: [
-		symbols := IdentityDictionary new.
-		links at: aSource put: symbols ].
-	coll := symbols at: aSymbol ifAbsent: [ symbols at: aSymbol put: WeakIdentityKeyDictionary new ].
-	coll
-		at: aReceiver
-		put: ((SMMonitor receiver: aReceiver selector: aSelector) level: self level).
+	symbols
+		ifNil: [ symbols := IdentityDictionary new.
+			links at: aSource put: symbols ].
+	coll := symbols
+		at: aSymbol
+		ifAbsentPut: [ WeakIdentityKeyDictionary new ].
+	coll at: aReceiver put: aSelector	"((SMMonitor receiver: aReceiver selector: aSelector) level: self level)"
+]
+
+{ #category : #accessing }
+SMLinks >> count [
+	^ count ifNil: [ count := 0 ]
+]
+
+{ #category : #accessing }
+SMLinks >> count: anObject [
+	count := anObject
 ]
 
 { #category : #'event handling' }
 SMLinks >> event: aSelector source: aSource [
 	"Creating an Event"
 	| receivers symbols res |
+	self tryClean.
 	symbols := self links at: aSource ifAbsent: [ nil ].
 	symbols ifNil: [ ^ self ].
 	receivers := symbols at: aSelector ifAbsent: [ nil ].
 	receivers ifNil: [ ^ self ].
 	res := OrderedCollection new.
-	receivers keysAndValuesDo: [ :k :v| res add: ([ v execute ] fork)].
+	receivers keysAndValuesDo: [ :k :v| res add: ([ k perform: v asSymbol"v execute" ] fork)].
 	^ res
 ]
 
@@ -88,12 +107,14 @@ SMLinks >> event: aSelector source: aSource [
 SMLinks >> event: aSelector source: aSource arg: anArg [
 	"Creating an Event with an argument"
 	| receivers symbols res |
+	self tryClean.
 	symbols := self links at: aSource ifAbsent: [ nil ].
 	symbols ifNil: [ ^ self ].
 	receivers := symbols at: aSelector ifAbsent: [ nil ].
 	receivers ifNil: [ ^ self ].
 	res := OrderedCollection new.
-	receivers keysAndValuesDo: [ :k :v| res add: ([ v executeWith: anArg ] fork) ].
+	receivers keysAndValuesDo: [ :k :v|
+		res add: ([ k perform: (v, #':') asSymbol with: anArg"v executeWith: anArg" ] fork) ].
 	^ res
 ]
 
@@ -126,4 +147,17 @@ SMLinks >> remove: anReceiver event: anSymbol source: aSource [
 	coll := symbols at: anSymbol ifAbsent: [ nil ].
 	coll ifNil: [ ^ self ].
 	^ coll removeKey: anReceiver ifAbsent: [  ].
+]
+
+{ #category : #services }
+SMLinks >> tryClean [
+	| arr val |
+	self count: self count + 1.
+	count < 1000 ifTrue: [ ^ self ].
+		count := 0.
+		arr := links array.
+		1 to: arr size do: [ :index|
+			val := arr at: index.
+			val ifNotNil: [ val key ifNil: [ arr at: index put: nil ] ] ].
+		self links rehash.
 ]
